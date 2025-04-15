@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
+import openpyxl
 import requests
 import os
-import openpyxl
 
 st.set_page_config(page_title="AI V2V Safety Recommender", layout="wide")
 
