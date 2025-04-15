@@ -1,12 +1,14 @@
 import streamlit as st
 import pandas as pd
 import requests
+import os
 
 st.set_page_config(page_title="AI V2V Safety Recommender", layout="wide")
 
 # ------------------- Config -------------------
 OLLAMA_URL = "https://customs-delayed-explorer-fetish.trycloudflare.com"
 MODEL_NAME = "gemma2:2b"
+EXCEL_PATH = "drive_data_example.xlsx"  # Local path inside repo
 
 # ------------------- Recommender -------------------
 class GemmaRecommender:
@@ -28,7 +30,6 @@ class GemmaRecommender:
         except Exception as e:
             return f"⚠️ Error generating recommendation: {str(e)}"
 
-# Load model once
 @st.cache_resource
 def load_model():
     return GemmaRecommender()
@@ -37,35 +38,31 @@ gemma = load_model()
 
 st.title("🚗 AI-Based Vehicle-to-Vehicle Safety Recommender")
 
-# ------------------- File Upload -------------------
-st.subheader("📥 Upload Excel File")
-uploaded_file = st.file_uploader("drive_data_example.xlsx", type=["xlsx"])
+# ------------------- Auto Load Excel -------------------
+try:
+    df = pd.read_excel(EXCEL_PATH)
+    st.subheader("📊 Preview of Input Data")
+    st.dataframe(df)
 
-if uploaded_file:
-    try:
-        df = pd.read_excel(uploaded_file)
-        st.subheader("📊 Preview of Input Data")
-        st.dataframe(df)
+    if st.button("Generate AI Recommendations"):
+        st.subheader("📌 AI Recommendations:")
+        with st.spinner("Generating safety actions..."):
+            for idx, row in df.iterrows():
+                context = (
+                    f"Speed = {row['Speed (km/h)']} km/h, "
+                    f"{row['Brake Pattern']}, "
+                    f"{row['Time of Day']} time, "
+                    f"{row['Road Type']} road with {row['Traffic']} traffic."
+                )
 
-        if st.button("Generate AI Recommendations"):
-            st.subheader("📌 AI Recommendations:")
-            with st.spinner("Generating safety actions..."):
-                for idx, row in df.iterrows():
-                    context = (
-                        f"Speed = {row['Speed (km/h)']} km/h, "
-                        f"{row['Brake Pattern']}, "
-                        f"{row['Time of Day']} time, "
-                        f"{row['Road Type']} road with {row['Traffic']} traffic."
-                    )
+                prompt = f"Given the driving context: {context}, recommend a safety warning or action for the driver."
+                recommendation = gemma.generate_text(prompt)
 
-                    prompt = f"Given the driving context: {context}, recommend a safety warning or action for the driver."
-                    recommendation = gemma.generate_text(prompt)
+                with st.expander(f"DATA {idx+1}"):
+                    st.markdown(f"**Context:** {context}")
+                    st.markdown(f"**AI Recommendation:** {recommendation}")
 
-                    with st.expander(f"DATA {idx+1}"):
-                        st.markdown(f"**Context:** {context}")
-                        st.markdown(f"**AI Recommendation:** {recommendation}")
-
-    except Exception as e:
-        st.error(f"⚠️ Error processing the uploaded file: {e}")
-else:
-    st.info("Please upload an Excel file to get started.")
+except FileNotFoundError:
+    st.error(f"⚠️ Excel file not found at `{EXCEL_PATH}`")
+except Exception as e:
+    st.error(f"⚠️ Error processing Excel file: {e}")
