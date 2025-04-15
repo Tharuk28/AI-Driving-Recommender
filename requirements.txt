@@ -1,7 +1,3 @@
 streamlit
-transformers
-torch
-sentence-transformers
-streamlit-extras
+ollama
 pandas
-openpyxl
